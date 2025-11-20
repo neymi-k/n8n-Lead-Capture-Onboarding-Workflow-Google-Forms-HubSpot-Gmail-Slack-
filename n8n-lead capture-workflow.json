@@ -1,0 +1,303 @@
+{
+  "name": "n8n Lead Capture & Onboarding Workflow (Google Forms → HubSpot → Gmail → Slack)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "forms-google",
+        "options": {}
+      },
+      "name": "Webhook - Lead Capture",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        368,
+        1008
+      ],
+      "id": "f0a58ad1-fd26-46ca-af76-5d6834b147e7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json['Correo Electrónico '] }}",
+              "operation": "regex",
+              "value2": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+            }
+          ]
+        }
+      },
+      "name": "IF - Validate Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        816,
+        1008
+      ],
+      "id": "d440f9aa-ae69-4c99-9ac3-f09e1b29b7ba"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e888c214-9435-459b-8140-b630d2ec66b7",
+              "name": "Nombre completo",
+              "value": "={{ $json.body.responses['Nombre completo'] }}",
+              "type": "string"
+            },
+            {
+              "id": "aa13773e-f923-4357-b41a-2d72ee30107e",
+              "name": "Correo Electrónico ",
+              "value": "={{ $json.body.responses['Correo Electrónico '] }}",
+              "type": "string"
+            },
+            {
+              "id": "66bb8843-cbb6-440c-aa0a-822f10df3607",
+              "name": "Numero de teléfono",
+              "value": "={{ $json.body.responses['Numero de teléfono'] }}",
+              "type": "string"
+            },
+            {
+              "id": "555ee249-6469-4144-b8b4-0e44bc657286",
+              "name": "¿Cuál es tu principal objetivo con la automatización?",
+              "value": "={{ $json.body.responses['¿Cuál es tu principal objetivo con la automatización?'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        1008
+      ],
+      "id": "38c63b51-9560-4eae-bc29-0241010b3da9",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "N8N Lead Capture & Onboarding Workflow\n\nEste flujo de trabajo permite la captura de datos desde un formulario creado en Google Forms. A través de una condición muy específica, se valida si el correo electrónico obtenido cumple con los criterios necesarios para continuar con el proceso.\n\nSi la validación es correcta, los datos se agregan a la base de contactos del CRM (en este caso, HubSpot). Luego, se envía un correo electrónico de bienvenida al usuario y, finalmente, se notifica al equipo a través de Slack que se ha creado un nuevo contacto en el CRM.\n\nEn caso de que el correo electrónico no sea válido, el flujo notificará un error al equipo por Slack, para que puedan contactar directamente al prospecto.",
+        "height": 448,
+        "width": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -96,
+        880
+      ],
+      "typeVersion": 1,
+      "id": "9058f932-db41-4f72-80fb-de49ae65b038",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Para la credencial de HubSpot, selecciona el tipo App Token. Los pasos para generarlo se pueden encontrar en la documentación del propio nodo dentro de N8N.",
+        "height": 128,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        976,
+        752
+      ],
+      "typeVersion": 1,
+      "id": "040d1e03-0f9a-4634-bd46-c668233c56b5",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09RNCV1T5J",
+          "mode": "list",
+          "cachedResultName": "errores-workflow"
+        },
+        "text": "=Correo electronico no valido, usuario desde Google Forms.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        1104
+      ],
+      "id": "0027ebad-8664-4a24-9675-d318af3f42f3",
+      "name": "Error Notification",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "<REDACTED_SLACK_OAUTH2_ID>",
+          "name": "<REDACTED_SLACK_OAUTH2_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $json['Correo Electrónico '] }}",
+        "additionalFields": {
+          "firstName": "={{ $json['Nombre completo'] }}",
+          "message": "={{ $json['¿Cuál es tu principal objetivo con la automatización?'] }}",
+          "phoneNumber": "={{ $json['Numero de teléfono'] }}"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        1040,
+        912
+      ],
+      "id": "fb5d7416-c998-433b-8482-593ff0fe0934",
+      "name": "Lead Creation",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "<REDACTED_HUBSPOT_APP_TOKEN_ID>",
+          "name": "<REDACTED_HUBSPOT_APP_TOKEN_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('IF - Validate Email').item.json['Correo Electrónico '] }}",
+        "subject": "Bienvenido a Ivi Projects",
+        "message": "=Hola, \n\nGracias por contactar con Ivi Projects",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1264,
+        912
+      ],
+      "id": "3fc8fc4a-c87a-4607-bde2-7a226f7aac7d",
+      "name": "Lead Welcome Message",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "<REDACTED_GMAIL_OAUTH2_ID>",
+          "name": "<REDACTED_GMAIL_OAUTH2_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C09UU4FE9CG",
+          "mode": "list",
+          "cachedResultName": "nuevos-leads-hubspot"
+        },
+        "text": "Nuevo registro en HubSpot, desde Forms Google.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1488,
+        912
+      ],
+      "id": "de479c5b-6d4c-4eeb-aece-d7ca3f27d7ab",
+      "name": "Notification New Contact CRM",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "<REDACTED_SLACK_OAUTH2_ID>",
+          "name": "<REDACTED_SLACK_OAUTH2_NAME>"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook - Lead Capture": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Validate Email": {
+      "main": [
+        [
+          {
+            "node": "Lead Creation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "IF - Validate Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Creation": {
+      "main": [
+        [
+          {
+            "node": "Lead Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Welcome Message": {
+      "main": [
+        [
+          {
+            "node": "Notification New Contact CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notification New Contact CRM": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "806db133-fcef-4f74-900c-23478b989cda",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "0HB6jTehBBoLEPju",
+  "tags": [
+    {
+      "createdAt": "2025-09-17T16:22:34.670Z",
+      "updatedAt": "2025-09-17T16:22:34.670Z",
+      "id": "y0clFAjnfTqOSxdT",
+      "name": "Ivi-Projects"
+    }
+  ]
+}
